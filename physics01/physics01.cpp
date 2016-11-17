@@ -17,7 +17,9 @@ struct SimpleVertex
 //--------------------------------------------------------------------------------------
 // Structures
 //--------------------------------------------------------------------------------------
-#define MAX_BOX 24
+#define X_BOX 4				// 横に4つ
+#define Y_BOX 5				// 縦に5つ
+#define MAX_BOX X_BOX*Y_BOX	// 総計
 
 //--------------------------------------------------------------------------------------
 // Global Variables
@@ -46,6 +48,16 @@ D3DXMATRIX                  g_World;
 D3DXMATRIX                  g_View;
 D3DXMATRIX                  g_Projection;
 POINT						g_DragPosision;
+
+// ボックスの座標左下右下<->左上右上(左下基準)
+D3DXVECTOR3 g_vBox[Y_BOX][X_BOX] =
+{
+	{ D3DXVECTOR3( -4.f, 0.f, 0.f ), D3DXVECTOR3( -2.f, 0.f, 0.f ),D3DXVECTOR3( 0.f, 0.f, 0.f ),D3DXVECTOR3(  2.f, 0.f, 0.f ) },
+	{ D3DXVECTOR3( -4.f, 2.f, 0.f ), D3DXVECTOR3( -2.f, 2.f, 0.f ),D3DXVECTOR3( 0.f, 2.f, 0.f ),D3DXVECTOR3(  2.f, 2.f, 0.f ) },
+	{ D3DXVECTOR3( -4.f, 4.f, 0.f ), D3DXVECTOR3( -2.f, 4.f, 0.f ),D3DXVECTOR3( 0.f, 4.f, 0.f ),D3DXVECTOR3(  2.f, 4.f, 0.f ) },
+	{ D3DXVECTOR3( -4.f, 6.f, 0.f ), D3DXVECTOR3( -2.f, 6.f, 0.f ),D3DXVECTOR3( 0.f, 6.f, 0.f ),D3DXVECTOR3(  2.f, 6.f, 0.f ) },
+	{ D3DXVECTOR3( -4.f, 8.f, 0.f ), D3DXVECTOR3( -2.f, 8.f, 0.f ),D3DXVECTOR3( 0.f, 8.f, 0.f ),D3DXVECTOR3(  2.f, 8.f, 0.f ) },
+};
 
 //--------------------------------------------------------------------------------------
 // Forward declarations
@@ -386,9 +398,9 @@ HRESULT InitDevice()
 	D3DXMatrixIdentity( &g_World );
 	
     // Initialize the view matrix
-    D3DXVECTOR3 Eye( 0.0f, 4.0f, -10.0f );
-    D3DXVECTOR3 At( 0.0f, 1.0f, 0.0f );
-    D3DXVECTOR3 Up( 0.0f, 1.0f, 0.0f );
+    D3DXVECTOR3 Eye( 0.0f, 15.0f, -30.0f );
+    D3DXVECTOR3 At( 0.0f, 10.0f, 0.0f );
+    D3DXVECTOR3 Up( 0.0f, 2.0f, 0.0f );
     D3DXMatrixLookAtLH( &g_View, &Eye, &At, &Up );
 
     // Initialize the projection matrix
@@ -509,35 +521,16 @@ void Render()
 
 	D3D10_TECHNIQUE_DESC techDesc;
 
-	// ボックスの頂点座標左上右上左下右下
-	D3DXVECTOR3 vBox[] =
-	{
-		D3DXVECTOR3( -2.f, 6.f, 0.f ),
-		D3DXVECTOR3(  2.f, 6.f, 0.f ),
-		D3DXVECTOR3( -2.f, 0.f, 0.f ),
-		D3DXVECTOR3(  2.f, 0.f, 0.f ),
-	};
 	//
 	// Render the cube
 	//
-	D3DXVECTOR3 vecPos = vBox[2];
-	int nBoxX = 0;	// 横のボックスの数
-	int nBoxY = 0;	// 縦のボックスの数
+	D3DXVECTOR3 vecPos = g_vBox[0][0];
+	int nBoxX = 0;			// 横のボックスの数
+	int nBoxY = 0;			// 縦のボックスの数
 	for( UINT i = 0; i < MAX_BOX; ++i )
 	{
-		float fWidthBox = 2.f;
-		float fHeightBox = 2.f;
 		D3DXMATRIX mPosision;
-		if( vecPos[0] < vBox[1][0] )
-		{
-			vecPos = vecPos + D3DXVECTOR3( fWidthBox * (float)nBoxX++, 0.f, 0.f );
-		}
-		else
-		{
-			nBoxY++;
-			nBoxX = 0;
-			vecPos = D3DXVECTOR3( vBox[0][0], fHeightBox * (float)nBoxY, 0.f );
-		}
+		vecPos = g_vBox[nBoxY][nBoxX];
 		D3DXMatrixTranslation( &mPosision, vecPos.x, vecPos.y, vecPos.z );
 
 		g_pWorldVariable->SetMatrix( (float*)&mPosision );
@@ -549,6 +542,14 @@ void Render()
 		{
 			g_pTechniqueRender[i]->GetPassByIndex( p )->Apply( 0 );
 			g_pd3dDevice->DrawIndexed( 36, 0, 0 );
+		}
+
+		// 次のブロックの準備
+		nBoxX++;
+		if( nBoxX >= X_BOX )
+		{
+			nBoxY++;
+			nBoxX = 0;
 		}
 	}
 
